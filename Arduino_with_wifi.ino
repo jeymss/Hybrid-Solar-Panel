@@ -27,7 +27,7 @@ char ssid[] = "FiberLODIII";
 char wifiPassword[] = "abadPAPANGARNEL0926@";
 char username[] = "78de96e0-c581-11ed-b0e7-e768b61d6137";
 char password[] = "2cddbda53ae361fda4a12a7810f2d22f8057a89d";
-char clientID[] = "7e306fb0-c581-11ed-b72d-d9f6595c5b9d";
+char clientID[] = "a53f41c0-c582-11ed-b0e7-e768b61d6137";
 
 #define EspSerial Serial1
 
@@ -55,8 +55,8 @@ int servov = 0;
 int servovLimitHigh = 170;
 int servovLimitLow  = 10;
 
-int topl,topr,botl,botr;
-int threshold_value=10;        
+int topl,topr,botl,botr;    
+int threshold_value=10;   
 float Vout;
 
 void setup()
@@ -64,87 +64,89 @@ void setup()
     
   Serial.begin(9600);
   delay(10);
-  EspSerial.begin(9600); // Set ESP8266 baud rate
-  delay(10);
+	EspSerial.begin(9600); // Set ESP8266 baud rate
+	delay(10);
   Serial.begin(baudRate); //initializes serial communication  
   Cayenne.begin(username, password, clientID, wifi, ssid, wifiPassword);
   servo_x.attach(5);
   servo_z.attach(6);
   dht.begin();
   pinMode(3,OUTPUT);
-  
+  //digitalWrite(3,LOW); 
   
 }
 
 void loop()
 {
-  topr= analogRead(A2);       
-  topl= analogRead(A3);         
-  botl= analogRead(A4);      
-  botr= analogRead(A5);        
-  Vout=(analogRead(A7) * 5.0) / 1023;
+  topr = analogRead(A2);
+  topl = analogRead(A3);
+  botl = analogRead(A4);
+  botr = analogRead(A5);
+  Vout = (analogRead(A8) * 5.0) / 1023;
+  int threshold_value=10; 
   analogVoltage = analogRead(voltageinputPIN); //reads analog voltage of incoming sensor
 
-  Serial.println(" Manual-mode");
   Cayenne.loop();
-  
-  if
-  (digitalRead(3)==1){
-    Serial.println(" Automatic-mode");
+
+  if (digitalRead(3) == HIGH) {
+    Serial.println("Automatic-mode");
+
     servoh = servo_x.read();
     servov = servo_z.read();
-    int avgtop = (topr + topl) / 2;     
-    int avgbot = (botr + botl) / 2;   
-    int avgright = (topr  + botr) / 2;   
-    int avgleft = (topl + botl) / 2;    
-    int diffhori=  avgtop - avgbot;      
-    int diffverti= avgleft - avgright;    
-    int offset =20;// set the correction offset value
+
+    int avgtop = (topr + topl) / 2;
+    int avgbot = (botr + botl) / 2;
+    int avgright = (topr + botr) / 2;
+    int avgleft = (topl + botl) / 2;
+    int diffhori = avgtop - avgbot;
+    int diffverti = avgleft - avgright;
+    //int offset =20;// set the correction offset value
     
-    /*tracking according to horizontal axis*/ 
-    if (abs(diffhori) <= threshold_value)
-    {
-     servo_x.write(servoh);            //stop the servo up-down
-    }else {
-       if (diffhori > threshold_value)
-          { Serial.println(" x -  2 ");
-          servo_x.write(servoh -2);    //Clockwise rotation CW
-          if (servoh > servohLimitHigh)
-          {
-           servoh = servohLimitHigh;
-          }
-          delay(10);
-          }else {
-           servo_x.write(servoh +2);   //CCW
-           if (servoh < servohLimitLow)
-           {
-           servoh = servohLimitLow;
-           }
-           delay(10);
-           }
-      }     
-    /*tracking according to vertical axis*/ 
-    if (abs(diffverti) <= threshold_value)
-    {     
-     servo_z.write(servov);       //stop the  servo left-right
-    }else{
-       if (diffverti > threshold_value)
-       {
-       servo_z.write(servov -2);  //CW
-       if (servov > servovLimitHigh)
-       { 
-       servov = servovLimitHigh;
-       }
-       delay(10);
-       }else{ 
-        servo_z.write(servov +2);  //CCW
-        if (servov < servovLimitLow) 
-        {
-        servov = servovLimitLow;
+    /*tracking according to horizontal axis*/
+    if (abs(diffhori) <= threshold_value) {
+      servo_x.write(servoh); //stop the servo up-down
+    }
+    else {
+      if (diffhori > threshold_value) {
+        //Serial.println(" x -  2 ");
+        servo_x.write(servoh - 2); //Clockwise rotation CW
+        if (servoh > servohLimitHigh) {
+          servoh = servohLimitHigh;
         }
         delay(10);
+      }
+      else {
+        servo_x.write(servoh + 2); //CCW
+        if (servoh < servohLimitLow) {
+          servoh = servohLimitLow;
         }
-     }
+        delay(10);
+      }
+    }
+
+    /*tracking according to vertical axis*/
+    if (abs(diffverti)  <= threshold_value) {
+      servo_z.write(servov); //stop the servo left-right
+    }
+    else {
+      if (diffverti > threshold_value) {
+        servo_z.write(servov - 2); //CW - 2
+        if (servov > servovLimitHigh) {
+          servov = servovLimitHigh;
+        }
+        delay(10);
+      }
+      else {
+        servo_z.write(servov + 2); //CCW + 2
+        if (servov < servovLimitLow) {
+          servov = servovLimitLow;
+        }
+        delay(10);
+      }
+    }
+  }
+  else {
+    Serial.println("Manual-mode");
   }
 }
 // Cayenne Functions
@@ -172,22 +174,24 @@ CAYENNE_OUT(13){
   Cayenne.virtualWrite(13, Voltage, TYPE_VOLTAGE, UNIT_VOLTS);
   Serial.print(" Voltage: "); 
   Serial.print(Voltage); //prints value to serial monitor
-  Serial.println("V"); //prints label
+  Serial.println("v"); //prints label
   //delay(sensorreadDelay); //delay in milliseconds between read values
 }
 CAYENNE_OUT(0) { //Current
   float Voltage = (analogVoltage * (5.0 / 1023.0)); //conversion equation
-  float current = Voltage/2;
+  float current = Voltage/resistance;
   Cayenne.virtualWrite(0, current);
   Serial.print(" Current: ");
-  Serial.println(current);
+  Serial.print(current);
+  Serial.println("a");
 }
 CAYENNE_OUT(10) { //Power
   float Voltage = (analogVoltage * (5.0 / 1023.0)); //conversion equation
   float power = (Voltage * Voltage)/resistance ;
   Cayenne.virtualWrite(10, power);
   Serial.print(" Power: ");
-  Serial.println(power);
+  Serial.print(power);
+  Serial.println("W");
 }
 CAYENNE_OUT(2){  //LDR Top-right
   Cayenne.virtualWrite(2, topr);
@@ -205,13 +209,14 @@ CAYENNE_OUT(11){ //Temperature
   float t = dht.readTemperature();
   //int chk = dht.read(DHT11PIN);
   Cayenne.virtualWrite(11, t, TYPE_TEMPERATURE, UNIT_CELSIUS);
-  Serial.print(" temperature:  ");
-  Serial.println(t);
+  Serial.print(" Temperature: ");
+  Serial.print(t);
+  Serial.println("c");
 }
 CAYENNE_OUT(12){ //HuMidity
   double h = dht.readHumidity();
   //int chk = dht.read(DHT11PIN);
   Cayenne.virtualWrite(12, h); 
-  Serial.print(" humidity: ");
+  Serial.print(" Humidity: ");
   Serial.println(h);
 }
