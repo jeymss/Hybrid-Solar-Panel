@@ -1,0 +1,22 @@
+#include <Servo.h>  // include Servo library
+#define HUMIDITY_PIN A0  // define humidity sensor input pin
+#define SERVO_PIN 9  // define servo motor output pin
+Servo servo;  // create servo object
+
+void setup() {
+  pinMode(HUMIDITY_PIN, INPUT);  // set humidity sensor pin as input
+  servo.attach(SERVO_PIN);  // attach servo to output pin
+}
+
+void loop() {
+  int humidity = analogRead(HUMIDITY_PIN);  // read humidity sensor value
+  int angle = map(humidity, 0, 1023, 0, 180);  // map humidity value to servo angle range (0-180)
+  
+  if (humidity >= 614) {  // if humidity is equal or greater than 60% (60% of 1023 = 614)
+    servo.write(angle);  // rotate servo to mapped angle
+    delay(15);  // wait for servo to reach position
+  } else {
+    servo.write(0);  // rotate servo back to initial position
+    delay(15);  // wait for servo to reach position
+  }
+}
