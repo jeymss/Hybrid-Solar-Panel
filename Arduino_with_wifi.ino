@@ -23,8 +23,8 @@ DHT dht(DHTPIN,DHTTYPE);
 
 // WiFi network info.
 //MQTT credentials   
-char ssid[] = "FiberLODIII";
-char wifiPassword[] = "abadPAPANGARNEL0926@";
+char ssid[] = "TECNO POVA";
+char wifiPassword[] = "ulolkadon";
 char username[] = "78de96e0-c581-11ed-b0e7-e768b61d6137";
 char password[] = "2cddbda53ae361fda4a12a7810f2d22f8057a89d";
 char clientID[] = "a53f41c0-c582-11ed-b0e7-e768b61d6137";
@@ -33,17 +33,20 @@ char clientID[] = "a53f41c0-c582-11ed-b0e7-e768b61d6137";
 
 ESP8266 wifi(&EspSerial);
 const int voltageinputPIN = A8; //select analog input pin for voltage sensor //sets baud rate in bits per second for serial monitor
+const int piezoinputPIN = A7; //select analog input pin for piezo voltage sensor //sets baud rate in bits per second for serial monitor
 const int baudRate = 9600; //sets baud rate in bits per second for serial monitor
 const int sensorreadDelay = 250; //sensor read delay in milliseconds
 const int maxanalogValue = 1010; //highest integer given at max input voltage
 const int sensormaxVoltage = 25; //highest input voltage of sensor being used
 
 float analogVoltage = 0; //to store voltage value at analog pin
+float analogPiezo = 0;
 float Voltage = 0; 
 float current = 0;
 float power = 0;
 
-float resistance = 12.5; // R = V^2/P == R = (5V)^2/2W
+float resistance = 2.5; // R = V^2/P == R = 5V/2W /// for solar panel
+float piezoresistance = 2.5; // R = V^2/P == R = (5V)^2/2W /// for piezo
 
 Servo servo_x;                   //up-down servomotor  
 int servoh = 0;
@@ -85,6 +88,7 @@ void loop()
   Vout = (analogRead(A8) * 5.0) / 1023;
   int threshold_value=10; 
   analogVoltage = analogRead(voltageinputPIN); //reads analog voltage of incoming sensor
+  analogPiezo = analogRead(piezoinputPIN); 
 
   Cayenne.loop();
 
@@ -187,7 +191,8 @@ CAYENNE_OUT(0) { //Current
 }
 CAYENNE_OUT(10) { //Power
   float Voltage = (analogVoltage * (5.0 / 1023.0)); //conversion equation
-  float power = (Voltage * Voltage)/resistance ;
+  float current = Voltage/resistance;
+  float power = Voltage * current ;
   Cayenne.virtualWrite(10, power);
   Serial.print(" Power: ");
   Serial.print(power);
@@ -219,4 +224,30 @@ CAYENNE_OUT(12){ //HuMidity
   Cayenne.virtualWrite(12, h); 
   Serial.print(" Humidity: ");
   Serial.println(h);
+}
+//Piezo sensors
+CAYENNE_OUT(14){
+  float piezoVoltage = (analogPiezo * (5.0 / 1023.0)); //conversion equation
+  Cayenne.virtualWrite(14, piezoVoltage, TYPE_VOLTAGE, UNIT_VOLTS);
+  Serial.print(" Piezo Voltage: "); 
+  Serial.print(piezoVoltage); //prints value to serial monitor
+  Serial.println("v"); //prints label
+  //delay(sensorreadDelay); //delay in milliseconds between read values
+}
+CAYENNE_OUT(15) { //Current
+  float piezoVoltage = (analogPiezo * (5.0 / 1023.0)); //conversion equation
+  float piezocurrent = piezoVoltage/piezoresistance;
+  Cayenne.virtualWrite(15, piezocurrent);
+  Serial.print("Piezo Current: ");
+  Serial.print(piezocurrent);
+  Serial.println("a");
+}
+CAYENNE_OUT(16) { //Power
+  float piezoVoltage = (analogVoltage * (5.0 / 1023.0)); //conversion equation
+  float piezocurrent = piezoVoltage/piezoresistance;
+  float piezopower = piezoVoltage * piezocurrent ;
+  Cayenne.virtualWrite(16, piezopower);
+  Serial.print("Piezo Power: ");
+  Serial.print(piezopower);
+  Serial.println("W");
 }
