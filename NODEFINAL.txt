@@ -1,0 +1,153 @@
+#include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
+const char *host = "script.google.com";
+const int httpsPort = 443;
+WiFiClientSecure client; //--> Create a WiFiClientSecure object.
+String GAS_ID = "AKfycbw6_TTGhLf3Uzc9e3ymOdo8zS118nFHhxqBHpfnNV3pe4Hp7ed0vXYsiRo3wja-5w8";
+const char *ssid = "FiberLODIII";              //--> Your wifi name or SSID.
+const char *password = "abadPAPANGARNEL0926@"; //--> Your wifi password.
+
+// ss
+#include <SoftwareSerial.h>
+SoftwareSerial SUART(D2, D1);
+
+// serial
+String received_data = "0";
+String inData;
+String send_data;
+String data_str;
+String ls_date_final, ls_time_final, pr_time = "0";
+String strs[20];
+int StringCount = 0;
+void setup()
+{
+    Serial.begin(9600);
+    SUART.begin(9600);
+
+    WiFi.begin(ssid, password); //--> Connect to your WiFi router
+    Serial.println("");
+
+    Serial.print("Connecting");
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        Serial.print(".");
+    }
+    Serial.println("");
+    Serial.print("Successfully connected to : ");
+    Serial.println(ssid);
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+    Serial.println();
+
+    client.setInsecure();
+}
+
+void loop()
+{
+    while (SUART.available() > 0)
+    {
+        char rxc = SUART.read();
+        if (rxc == '\n')
+        {
+            Serial.println("----------");
+            send_data = inData;
+            String str = send_data;
+
+            while (str.length() > 0)
+            {
+                int index = str.indexOf(',');
+                if (index == -1)
+                {
+                    strs[StringCount++] = str;
+                    break;
+                }
+                else
+                {
+                    strs[StringCount++] = str.substring(0, index);
+                    str = str.substring(index + 1);
+                }
+            }
+
+            data_str = String(strs[1]) + "," + String(strs[2]) + "," + String(strs[3]) + "," + String(strs[4]) + "," + String(strs[5]) + "," + String(strs[6]) + "," + String(strs[7]) + "," + String(strs[8]);
+            Serial.println(data_str);
+            sendData(strs[4], strs[5], strs[1], strs[2], strs[3], strs[6], strs[7], strs[8]);
+
+            delay(1000);
+
+            if (inData == "+++\n")
+            {
+                Serial.println("OK.");
+            }
+            send_data = "";
+            inData = "";
+            StringCount = 0;
+        }
+        else
+        {
+            inData += rxc;
+        }
+    }
+}
+
+void sendData(String string_temperature, String string_humidity, String string_Voltage, String string_current, String string_power, String string_piezoVoltage, String string_piezocurrent, String string_piezopower)
+{
+    Serial.println("==========");
+    Serial.print("connecting to ");
+    Serial.println(host);
+
+    //----------------------------------------Connect to Google host
+    if (!client.connect(host, httpsPort))
+    {
+        Serial.println("connection failed");
+        return;
+    }
+    //----------------------------------------
+
+    //----------------------------------------Processing data and sending data
+    // String string_temperature = String(tem);
+    // String string_humidity = String(hum, DEC);
+    // String string_Voltage = String(volt, DEC);
+    // String string_current = String(curr, DEC);
+    // String string_power = String(pow, DEC);
+    // String string_piezoVoltage = String(pvolt, DEC);
+    // String string_piezocurrent = String(pcurr, DEC);
+    // String string_piezopower = String(ppow, DEC);
+
+    String url = "/macros/s/" + GAS_ID + "/exec?temperature=" + string_temperature + "&humidity=" + string_humidity + "&Voltage=" + string_Voltage + "&current=" + string_current + "&power=" + string_power + "&piezoVoltage=" + string_piezoVoltage + "&piezocurrent=" + string_piezocurrent + "&piezopower=" + string_piezopower;
+    Serial.print("requesting URL: ");
+    Serial.println(url);
+
+    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
+                 "Host: " + host + "\r\n" +
+                 "User-Agent: BuildFailureDetectorESP8266\r\n" +
+                 "Connection: close\r\n\r\n");
+
+    Serial.println("request sent");
+    //----------------------------------------
+
+    //----------------------------------------Checking whether the data was sent successfully or not
+    while (client.connected())
+    {
+        String line = client.readStringUntil('\n');
+        if (line == "\r")
+        {
+            Serial.println("headers received");
+            break;
+        }
+    }
+    String line = client.readStringUntil('\n');
+    if (line.startsWith("{\"state\":\"success\""))
+    {
+        Serial.println("esp8266/Arduino CI successfull!");
+    }
+    else
+    {
+        Serial.println("esp8266/Arduino CI has failed");
+    }
+    Serial.print("reply was : ");
+    Serial.println(line);
+    Serial.println("closing connection");
+    Serial.println("==========");
+    Serial.println();
+    //----------------------------------------
+}
